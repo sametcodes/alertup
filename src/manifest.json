@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "content_scripts": [
+    {
+      "js": [
+        "content/index.tsx"
+      ],
+      "matches": [
+        "https://*.upwork.com/*"
+      ]
+    }
+  ],
+  "permissions": [
+    "webRequest"
+  ],
+  "host_permissions": [
+    "*://upwork.com/*"
+  ]
+}
