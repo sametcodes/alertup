@@ -3,6 +3,7 @@ import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons"
 import * as SelectPrimitive from "@radix-ui/react-select"
 
 import { cn } from "@/components/lib/utils"
+import { useContainer } from "@/utils/context"
 
 const Select = SelectPrimitive.Root
 
@@ -32,11 +33,11 @@ SelectTrigger.displayName = SelectPrimitive.Trigger.displayName
 
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & {
-    container?: HTMLElement
-  }
->(({ className, children, container, position = "popper", ...props }, ref) => (
-  <SelectPrimitive.Portal container={container}>
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
+>(({ className, children, position = "popper", ...props }, ref) => {
+  const container = useContainer();
+
+  return <SelectPrimitive.Portal container={container}>
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
@@ -59,7 +60,8 @@ const SelectContent = React.forwardRef<
       </SelectPrimitive.Viewport>
     </SelectPrimitive.Content>
   </SelectPrimitive.Portal>
-))
+})
+
 SelectContent.displayName = SelectPrimitive.Content.displayName
 
 const SelectLabel = React.forwardRef<

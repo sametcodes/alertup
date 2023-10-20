@@ -60,7 +60,7 @@ export function DemoShareDocument() {
                 <SelectTrigger className="ml-auto w-[110px]">
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent asChild>
                   <SelectItem value="edit">Can edit</SelectItem>
                   <SelectItem value="view">Can view</SelectItem>
                 </SelectContent>
@@ -83,7 +83,7 @@ export function DemoShareDocument() {
                 <SelectTrigger className="ml-auto w-[110px]">
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent asChild>
                   <SelectItem value="edit">Can edit</SelectItem>
                   <SelectItem value="view">Can view</SelectItem>
                 </SelectContent>
@@ -106,7 +106,7 @@ export function DemoShareDocument() {
                 <SelectTrigger className="ml-auto w-[110px]">
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent asChild>
                   <SelectItem value="edit">Can edit</SelectItem>
                   <SelectItem value="view">Can view</SelectItem>
                 </SelectContent>

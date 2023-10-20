@@ -27,11 +27,7 @@ function DemoContainer({
     )
 }
 
-export default function CardsPage({
-    container
-}: {
-    container: HTMLElement
-}) {
+export default function CardsPage() {
     return (
         <>
             <div className="md:hidden">
@@ -61,7 +57,7 @@ export default function CardsPage({
                 </div>
                 <div className="col-span-2 grid items-start gap-6 lg:col-span-2 lg:grid-cols-2 xl:col-span-1 xl:grid-cols-1">
                     <DemoContainer>
-                        <DemoReportAnIssue container={container} />
+                        <DemoReportAnIssue />
                     </DemoContainer>
                     <DemoContainer>
                         <DemoGithub />

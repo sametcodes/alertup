@@ -20,11 +20,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 
-export function DemoReportAnIssue({
-  container
-}: {
-  container: HTMLElement
-}) {
+export function DemoReportAnIssue() {
   return (
     <Card>
       <CardHeader>
@@ -41,7 +37,7 @@ export function DemoReportAnIssue({
               <SelectTrigger id="area">
                 <SelectValue placeholder="Select" />
               </SelectTrigger>
-              <SelectContent container={container}>
+              <SelectContent>
                 <SelectItem value="team">Team</SelectItem>
                 <SelectItem value="billing">Billing</SelectItem>
                 <SelectItem value="account">Account</SelectItem>
@@ -59,7 +55,7 @@ export function DemoReportAnIssue({
               >
                 <SelectValue placeholder="Select level" />
               </SelectTrigger>
-              <SelectContent container={container}>
+              <SelectContent>
                 <SelectItem value="1">Severity 1 (Highest)</SelectItem>
                 <SelectItem value="2">Severity 2</SelectItem>
                 <SelectItem value="3">Severity 3</SelectItem>

@@ -27,6 +27,7 @@ export default {
       'process.env.NODE_ENV': isProduction ? JSON.stringify('production') : JSON.stringify('development'),
       preventAssignment: true
     }),
+    // eslint({}),
     chromeExtension(),
     postcss({
       extensions: ['.css', '.module.css'],
@@ -36,10 +37,14 @@ export default {
       ]
     }),
     simpleReloader(),
-    resolve(),
+    resolve({
+      preferBuiltins: false
+    }),
     commonjs(),
-    typescript(),
+    typescript({
+      tsconfig: './tsconfig.json',
+    }),
     emptyDir(),
     isProduction && zip({ dir: 'releases' }),
-  ],
+  ]
 }

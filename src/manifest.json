@@ -1,5 +1,8 @@
 {
   "manifest_version": 3,
+  "background": {
+    "service_worker": "background.ts"
+  },
   "content_scripts": [
     {
       "js": [
@@ -11,9 +14,11 @@
     }
   ],
   "permissions": [
-    "webRequest"
+    "webRequest",
+    "storage",
+    "notifications"
   ],
   "host_permissions": [
-    "*://upwork.com/*"
+    "*://*.upwork.com/*"
   ]
 }
