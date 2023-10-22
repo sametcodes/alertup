@@ -1,13 +1,19 @@
 
-export type SavedJobs = {
+export type SavedTopic = {
     text: string,
     href: string,
     searchId: string,
     filterCount: string,
 }
 
-export type SavedJobsAlarm = SavedJobs & {
-    alarm: boolean
+export type SeenJob = {
+    jobId: string;
+    postedOn: number;
+    topicId: string;
+}
+
+export type SavedTopicAlarm = SavedTopic & {
+    alarm: boolean;
 }
 
 export type GetFeedResponse = {

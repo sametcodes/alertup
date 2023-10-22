@@ -11,8 +11,6 @@ const resolveRSSToken = (details: chrome.webRequest.WebRequestHeadersDetails) =>
         return;
     }
 
-
-
     const headers = details.requestHeaders.reduce((headers, header: chrome.webRequest.HttpHeader) => {
         headers.push([header.name, header.value || ""])
         return headers;

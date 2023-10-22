@@ -9,7 +9,8 @@
         "content/index.tsx"
       ],
       "matches": [
-        "https://*.upwork.com/*"
+        "https://*.upwork.com/*",
+        "https://chat.openai.com/*"
       ]
     }
   ],
@@ -19,6 +20,7 @@
     "notifications"
   ],
   "host_permissions": [
-    "*://*.upwork.com/*"
+    "*://*.upwork.com/*",
+    "*://chat.openai.com/*"
   ]
 }
