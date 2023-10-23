@@ -57,6 +57,7 @@ const controlRSSFeed = async () => {
     }[] = []
 
     console.log(`Reading ${data.alarms.length} RSS feeds...`)
+    const justInstalled = data.seenJobs === undefined;
 
     for (const alarm of data.alarms) {
         const feed = await getFeed({ topicId: alarm.searchId, headers: data.siteheaders });
@@ -75,7 +76,7 @@ const controlRSSFeed = async () => {
 
         await storage.local.set({ seenJobs: data.seenJobs })
 
-        if (newJobs.length) {
+        if (newJobs.length && justInstalled === false) {
             sendNotification(alarm, newJobs);
             output.push({ search: alarm.text, newJobs: newJobs.length, seenJobs: data.seenJobs.length })
         }
