@@ -2,17 +2,32 @@ import React, { useState, useEffect } from "react"
 import { BellOff, BellRing } from "lucide-react"
 import { storage } from '@extend-chrome/storage'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton"
+import { DEFAULT_INTERVAL_TIME } from "@/utils/consts"
 
-import { SavedTopic, SavedTopicAlarm, SeenJob } from '@/types';
+import { SavedTopic, SavedTopicAlert, SeenJob } from '@/types';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+
+const jobCheckIntervals = [
+    { value: 30, label: '30 seconds' },
+    { value: 60, label: '1 minute' },
+    { value: 60 * 3, label: '3 minutes' },
+    { value: 60 * 5, label: '5 minutes' },
+    { value: 60 * 30, label: '30 minutes' },
+    { value: 60 * 60, label: '1 hour' },
+    { value: 60 * 60 * 3, label: '3 hours' },
+]
 
 export const SavedJobsList = () => {
     const { toast } = useToast()
     const [loading, setLoading] = useState<boolean>(true)
-    const [jobs, setJobs] = useState<(SavedTopicAlarm & { countInLastHour?: number })[]>([])
+    const [jobs, setJobs] = useState<(SavedTopicAlert & { countInLastHour?: number })[]>([])
+    const [jobInterval, setJobInterval] = useState<string>(DEFAULT_INTERVAL_TIME)
 
     useEffect(() => {
         getSavedJobs()
@@ -30,16 +45,22 @@ export const SavedJobsList = () => {
         await storage.local.set({ user: { userUid, orgUid } })
     }
 
-    const getAlarms = async (savedTopics: SavedTopic[]) => {
-        return storage.local.get('alarms').then(result => {
-            const savedAlarms: SavedTopicAlarm[] = result.alarms || [];
+    const getAlerts = async (savedTopics: SavedTopic[]) => {
+        return storage.local.get('alerts').then(result => {
+            const savedAlerts: SavedTopicAlert[] = result.alerts || [];
             return savedTopics.map((job) => ({
-                ...job, alarm: savedAlarms.some((alarm) => alarm.searchId === job.searchId)
+                ...job, alert: savedAlerts.some((alert) => alert.searchId === job.searchId)
             }))
         })
     }
 
-    const fetchTopics = async (headers: Headers) => {
+    const getJobsInterval = async () => {
+        await storage.local.get('checkJobsInterval').then(({ checkJobsInterval }) => {
+            setJobInterval(checkJobsInterval || DEFAULT_INTERVAL_TIME);
+        })
+    }
+
+    const fetchTopics = async (headers: Headers): Promise<SavedTopic[]> => {
         return fetch("https://www.upwork.com/ab/jobs/search/feed/topics", { headers })
             .then(res => res.json())
             .then(res => {
@@ -63,7 +84,7 @@ export const SavedJobsList = () => {
         return data;
     }
 
-    const getJobsCount = (savedTopics: SavedTopicAlarm[], seenJobs: SeenJob[]) => {
+    const getJobsCount = (savedTopics: SavedTopicAlert[], seenJobs: SeenJob[]) => {
         return savedTopics.map((job) => {
             const jobsInLastHour = seenJobs.filter((seenJob) => seenJob.topicId === job.searchId &&
                 seenJob.postedOn > Date.now() - 1000 * 60 * 60).length;
@@ -75,54 +96,69 @@ export const SavedJobsList = () => {
     }
 
     const getSavedJobs = async () => {
-        const topicAlarms = await storage.local.get('siteheaders').then(result => {
+        const topicAlerts = await storage.local.get('siteheaders').then(result => {
             const headers = new Headers(result.siteheaders)
-            return fetchTopics(headers);
+            return fetchTopics(headers)
         });
 
-        const alarms = await getAlarms(topicAlarms)
+        const alerts = await getAlerts(topicAlerts)
+
+        storage.local.set({ alerts })
         const seenJobs = await fetchSeenJobs();
-        const topicsWithCount = getJobsCount(alarms, seenJobs);
+        await getJobsInterval()
+        const topicsWithCount = getJobsCount(alerts, seenJobs);
 
         setJobs(topicsWithCount);
         setLoading(false);
     }
 
-    const onSwitchAlarm = (job: SavedTopicAlarm) => {
+    const onSwitchalert = (job: SavedTopicAlert) => {
         const jobIndex = jobs.findIndex((_job) => _job.searchId === job.searchId);
         const updatedJobs = [...jobs];
-        updatedJobs[jobIndex].alarm = !updatedJobs[jobIndex].alarm;
+        updatedJobs[jobIndex].alert = !updatedJobs[jobIndex].alert;
 
-        const switchedTo = updatedJobs[jobIndex].alarm;
+        const switchedTo = updatedJobs[jobIndex].alert;
         setJobs(updatedJobs);
         toast({
-            title: `Alarm switched`,
-            description: `Alarm switched for "${updatedJobs[jobIndex].text}" job to ${switchedTo}.`,
+            title: `Alert switched ${switchedTo ? "on" : "off"}`,
+            description: switchedTo
+                ? `You will be notified when a new job is posted for ${job.text}.`
+                : `You will not be notified when a new job is posted for ${job.text}.`,
         })
 
         if (switchedTo) {
-            storage.local.get('alarms').then(result => {
-                const savedAlarm: SavedTopicAlarm[] = result.alarms || [];
+            storage.local.get('alerts').then(result => {
+                const savedAlerts: SavedTopicAlert[] = result.alerts || [];
                 storage.local.set({
-                    alarms: [...savedAlarm, {
+                    alerts: [...savedAlerts, {
                         text: job.text,
-                        alarm: job.alarm,
+                        alert: job.alert,
                         searchId: job.searchId
                     }]
                 })
             });
         } else {
-            storage.local.get('alarms').then(result => {
-                const savedAlarms: SavedTopicAlarm[] = result.alarms || [];
-                storage.local.set({ alarms: savedAlarms.filter((alarm) => alarm.searchId !== job.searchId) })
+            storage.local.get('alerts').then(result => {
+                const savedAlerts: SavedTopicAlert[] = result.alerts || [];
+                storage.local.set({ alerts: savedAlerts.filter((alert) => alert.searchId !== job.searchId) })
             });
         }
     }
 
+    const onIntervalChange = async (value: string) => {
+        const interval = jobCheckIntervals.find((interval) => interval.value.toString() === value);
+        await storage.local.set({ checkJobsInterval: value })
+        setJobInterval(value);
+        toast({
+            title: `Alert interval changed`,
+            description: `You will be notified every ${interval?.label}.`,
+        })
+    }
+
     return <Card className="mt-5">
         <CardHeader>
-            <CardTitle>Set Alarm</CardTitle>
-            <CardDescription>Change alarm settings for the saved jobs.</CardDescription>
+            <CardTitle>Set Jobs Alert</CardTitle>
+            <CardDescription>Change alert settings for your saved jobs.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6">
             {loading && [...Array(4)].map((_, index) =>
@@ -140,15 +176,39 @@ export const SavedJobsList = () => {
                     <Label htmlFor="necessary" className="flex flex-col space-y-1">
                         <a href={job.href}>{job.text}</a>
                         <span className="font-normal leading-snug text-muted-foreground">{job.filterCount}</span>
-                        <span className="font-normal leading-snug text-muted-foreground">{job.countInLastHour} jobs in last hour</span>
+                        <span className="font-normal leading-snug text-muted-foreground">{job.countInLastHour} jobs in the last hour</span>
                     </Label>
-                    <span className="cursor-pointer" onClick={onSwitchAlarm.bind(null, job)}>
-                        {job.alarm
+                    <span className="cursor-pointer" onClick={onSwitchalert.bind(null, job)}>
+                        {job.alert
                             ? <BellRing size={24} className="text-green-500" />
                             : <BellOff size={24} className="text-gray-500" />}
                     </span>
                 </div>
             })}
+            {!loading && jobs.length === 0 &&
+                <Alert>
+                    <AlertTitle className="text-lg">No saved jobs found</AlertTitle>
+                    <AlertDescription>
+                        <p>{`You don't have any saved jobs. Search for jobs and save them to get alerts.`}</p>
+                        <p><a href="https://support.upwork.com/hc/en-us/articles/211063078-Search-for-Jobs" className="text-green-600 hover:underline">Learn how to search for jobs</a></p>
+                    </AlertDescription>
+                </Alert>}
         </CardContent>
+        {jobs.length > 0 && <CardFooter className="flex justify-between mt-5">
+            <Label htmlFor="checkEvery" className="text-sm text-muted-foreground">Check jobs every</Label>
+            <Select onValueChange={onIntervalChange} value={jobInterval}>
+                <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Check jobs every" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectGroup id="checkEvery">
+                        {jobCheckIntervals.map(interval => (
+                            <SelectItem key={interval.value}
+                                value={interval.value.toString()}>{interval.label}</SelectItem>
+                        ))}
+                    </SelectGroup>
+                </SelectContent>
+            </Select>
+        </CardFooter>}
     </Card>
 }

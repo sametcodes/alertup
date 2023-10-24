@@ -1,6 +1,6 @@
 {
   "name": "AlertUp",
-  "description": "Get notifications for your saved searchs on Upwork.",
+  "description": "Get alerts for your saved searchs on Upwork.",
   "manifest_version": 3,
   "background": {
     "service_worker": "background.ts"

@@ -1,5 +1,6 @@
 import { storage } from '@extend-chrome/storage';
-import { GetFeedResponse, SeenJob, SavedTopicAlarm } from '@/types';
+import { GetFeedResponse, SeenJob, SavedTopicAlert } from '@/types';
+import { DEFAULT_INTERVAL_TIME } from '@/utils/consts';
 
 type GetFeedParams = {
     topicId: string,
@@ -11,15 +12,18 @@ const getFeed = async ({ topicId, headers }: GetFeedParams): Promise<GetFeedResp
     url.search = new URLSearchParams(params).toString();
     return fetch(url, {
         headers: new Headers(headers),
-    }).then(res => res.json())
+    }).then(res => res.json()).catch(err => {
+        console.error(err);
+        return null;
+    })
 }
 
-const sendNotification = (alarm: SavedTopicAlarm, newJobs: GetFeedResponse["searchResults"]["jobs"]) => {
+const sendNotification = (alert: SavedTopicAlert, newJobs: GetFeedResponse["searchResults"]["jobs"]) => {
     chrome.notifications.create({
         type: "list",
-        title: `New ${newJobs.length} jobs found for "${alarm.text}"`,
+        title: `New ${newJobs.length} jobs found for "${alert.text}"`,
         iconUrl: "https://www.upwork.com/favicon.ico",
-        message: "Click to view jobs",
+        message: "Click to open jobs",
         silent: false,
         items: newJobs.map(job => {
             return { title: job.title || "", message: job.publishedOn || "" }
@@ -33,7 +37,7 @@ const sendNotification = (alarm: SavedTopicAlarm, newJobs: GetFeedResponse["sear
 const controlRSSFeed = async () => {
     const data: {
         siteheaders?: Headers,
-        alarms?: SavedTopicAlarm[],
+        alerts?: SavedTopicAlert[],
         user?: {
             userUid: string,
             orgUid: string
@@ -41,13 +45,13 @@ const controlRSSFeed = async () => {
         seenJobs?: SeenJob[]
     } = await storage.local.get([
         "siteheaders",
-        "alarms",
+        "alerts",
         "user",
         "seenJobs"
     ]);
 
     if (!data.siteheaders) { console.log("No rss token found."); return; }
-    if (!data.alarms) { console.log("No alarms found."); return; }
+    if (!data.alerts) { console.log("No alerts found."); return; }
     if (!data.user) { console.log("No user found."); return; }
 
     const output: {
@@ -56,11 +60,12 @@ const controlRSSFeed = async () => {
         seenJobs: number
     }[] = []
 
-    console.log(`Reading ${data.alarms.length} RSS feeds...`)
+    // console.log(`Reading ${data.alerts.length} RSS feeds...`)
     const justInstalled = data.seenJobs === undefined;
 
-    for (const alarm of data.alarms) {
-        const feed = await getFeed({ topicId: alarm.searchId, headers: data.siteheaders });
+    for (const alert of data.alerts) {
+        const feed = await getFeed({ topicId: alert.searchId, headers: data.siteheaders });
+        if(!feed) continue;
 
         const seenJobsIds = (data.seenJobs || []).map(job => job.jobId) as string[];
         const newJobs = feed.searchResults.jobs.filter(jobPosting => seenJobsIds.includes(jobPosting.ciphertext) === false)
@@ -70,25 +75,34 @@ const controlRSSFeed = async () => {
             ...newJobs.map(job => ({
                 jobId: job.ciphertext,
                 postedOn: new Date(job.publishedOn).getTime(),
-                topicId: alarm.searchId
+                topicId: alert.searchId
             }))
         ];
 
         await storage.local.set({ seenJobs: data.seenJobs })
 
         if (newJobs.length && justInstalled === false) {
-            sendNotification(alarm, newJobs);
-            output.push({ search: alarm.text, newJobs: newJobs.length, seenJobs: data.seenJobs.length })
+            sendNotification(alert, newJobs);
+            output.push({ search: alert.text, newJobs: newJobs.length, seenJobs: data.seenJobs.length })
         }
 
         await new Promise(resolve => setTimeout(resolve, 1000))
     }
-    if (output.length) console.table(output)
-
+    // if (output.length) console.table(output)
 }
 
-const config = { interval: 30 * 1000 }
-setInterval(controlRSSFeed, config.interval)
+let intervalId: ReturnType<typeof setInterval> | undefined;
+const startChecking = () => {
+    if(intervalId) clearInterval(intervalId);
+    storage.local.get('checkJobsInterval').then(({ checkJobsInterval }) => {
+        const currentIntervalTime = checkJobsInterval || DEFAULT_INTERVAL_TIME;
+        intervalId = setInterval(controlRSSFeed, Number(currentIntervalTime) * 1000)
+    })
+}
+storage.local.changeStream.subscribe((changes) => {
+    if (changes.checkJobsInterval) startChecking()
+})
+startChecking();
 
 chrome.notifications.onClicked.addListener(async (notificationId: string) => {
     const data: { [key: string]: [] } = await storage.local.get([notificationId]);

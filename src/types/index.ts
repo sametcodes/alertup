@@ -12,8 +12,8 @@ export type SeenJob = {
     topicId: string;
 }
 
-export type SavedTopicAlarm = SavedTopic & {
-    alarm: boolean;
+export type SavedTopicAlert = SavedTopic & {
+    alert: boolean;
 }
 
 export type GetFeedResponse = {
