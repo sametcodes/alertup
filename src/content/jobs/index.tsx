@@ -13,7 +13,6 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 
 const jobCheckIntervals = [
@@ -52,7 +51,7 @@ export const SavedJobsList = () => {
         return storage.local.get('alerts').then(result => {
             const savedAlerts: SavedTopicAlert[] = result.alerts || [];
             return savedTopics.map((job) => ({
-                ...job, alert: savedAlerts.some((alert) => alert.searchId === job.searchId)
+                ...job, alert: savedAlerts.some((alert) => alert.searchId === job.searchId && alert.alert)
             }))
         })
     }
@@ -115,24 +114,16 @@ export const SavedJobsList = () => {
         setLoading(false);
     }
 
-    const onSwitchalert = (job: SavedTopicAlert) => {
+    const onSwitchAlert = async (job: SavedTopicAlert) => {
         const jobIndex = jobs.findIndex((_job) => _job.searchId === job.searchId);
         const updatedJobs = [...jobs];
         updatedJobs[jobIndex].alert = !updatedJobs[jobIndex].alert;
 
         const switchedTo = updatedJobs[jobIndex].alert;
-        setJobs(updatedJobs);
-        toast({
-            title: `Alert switched ${switchedTo ? "on" : "off"}`,
-            description: switchedTo
-                ? `You will be notified when a new job is posted for ${job.text}.`
-                : `You will not be notified when a new job is posted for ${job.text}.`,
-        })
-
         if (switchedTo) {
-            storage.local.get('alerts').then(result => {
+            await storage.local.get('alerts').then(result => {
                 const savedAlerts: SavedTopicAlert[] = result.alerts || [];
-                storage.local.set({
+                return storage.local.set({
                     alerts: [...savedAlerts, {
                         text: job.text,
                         alert: job.alert,
@@ -141,11 +132,19 @@ export const SavedJobsList = () => {
                 })
             });
         } else {
-            storage.local.get('alerts').then(result => {
+            await storage.local.get('alerts').then(result => {
                 const savedAlerts: SavedTopicAlert[] = result.alerts || [];
-                storage.local.set({ alerts: savedAlerts.filter((alert) => alert.searchId !== job.searchId) })
+                return storage.local.set({ alerts: savedAlerts.filter((alert) => alert.searchId !== job.searchId) })
             });
         }
+
+        setJobs(updatedJobs);
+        toast({
+            title: `Alert switched ${switchedTo ? "on" : "off"}`,
+            description: switchedTo
+                ? `You will be notified when a new job is posted for ${job.text}.`
+                : `You will not be notified when a new job is posted for ${job.text}.`,
+        })
     }
 
     const onIntervalChange = async (value: string) => {
@@ -182,7 +181,7 @@ export const SavedJobsList = () => {
                             <span className="font-normal leading-snug text-muted-foreground">{job.filterCount}</span>
                             <span className="font-normal leading-snug text-muted-foreground">{job.countInLastHour} jobs in the last hour</span>
                         </Label>
-                        <span className="cursor-pointer" onClick={onSwitchalert.bind(null, job)}>
+                        <span className="cursor-pointer" onClick={onSwitchAlert.bind(null, job)}>
                             {job.alert
                                 ? <BellRing size={24} className="text-green-500" />
                                 : <BellOff size={24} className="text-gray-500" />}
@@ -190,7 +189,7 @@ export const SavedJobsList = () => {
                     </div>
                 })}
                 {!loading && jobs.length === 0 &&
-                    <Alert>
+                    <Alert className="p-5">
                         <AlertTitle className="text-lg">No saved jobs found</AlertTitle>
                         <AlertDescription>
                             <p>{`You don't have any saved jobs. Search for jobs and save them to get alerts.`}</p>
