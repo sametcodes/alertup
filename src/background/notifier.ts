@@ -60,12 +60,12 @@ const controlRSSFeed = async () => {
         seenJobs: number
     }[] = []
 
-    // console.log(`Reading ${data.alerts.length} RSS feeds...`)
+    console.log(`Reading ${data.alerts.length} RSS feeds...`)
     const justInstalled = data.seenJobs === undefined;
 
     for (const alert of data.alerts) {
         const feed = await getFeed({ topicId: alert.searchId, headers: data.siteheaders });
-        if(!feed) continue;
+        if (!feed) continue;
 
         const seenJobsIds = (data.seenJobs || []).map(job => job.jobId) as string[];
         const newJobs = feed.searchResults.jobs.filter(jobPosting => seenJobsIds.includes(jobPosting.ciphertext) === false)
@@ -88,19 +88,26 @@ const controlRSSFeed = async () => {
 
         await new Promise(resolve => setTimeout(resolve, 1000))
     }
-    // if (output.length) console.table(output)
+    if (output.length) console.table(output)
 }
 
 let intervalId: ReturnType<typeof setInterval> | undefined;
 const startChecking = () => {
-    if(intervalId) clearInterval(intervalId);
+    if (intervalId) {
+        console.log("Clearing current interval.")
+        clearInterval(intervalId);
+    }
     storage.local.get('checkJobsInterval').then(({ checkJobsInterval }) => {
+        console.log({ checkJobsInterval })
         const currentIntervalTime = checkJobsInterval || DEFAULT_INTERVAL_TIME;
         intervalId = setInterval(controlRSSFeed, Number(currentIntervalTime) * 1000)
     })
 }
 storage.local.changeStream.subscribe((changes) => {
-    if (changes.checkJobsInterval) startChecking()
+    if (changes?.checkJobsInterval) {
+        console.log("Interval time changed.");
+        startChecking();
+    }
 })
 startChecking();
 

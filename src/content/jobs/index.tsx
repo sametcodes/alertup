@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import { BellOff, BellRing } from "lucide-react"
+import { BellOff, BellRing, Info } from "lucide-react"
 import { storage } from '@extend-chrome/storage'
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,8 +10,11 @@ import { DEFAULT_INTERVAL_TIME } from "@/utils/consts"
 
 import { SavedTopic, SavedTopicAlert, SeenJob } from '@/types';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
 
 const jobCheckIntervals = [
     { value: 30, label: '30 seconds' },
@@ -155,60 +158,81 @@ export const SavedJobsList = () => {
         })
     }
 
-    return <Card className="mt-5">
-        <CardHeader>
-            <CardTitle>Set Jobs Alert</CardTitle>
-            <CardDescription>Change alert settings for your saved jobs.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-6">
-            {loading && [...Array(4)].map((_, index) =>
-                <div key={index} className="flex items-center space-x-4">
-                    <div key={index} className="space-y-2">
-                        <Skeleton className="h-4 w-[220px] rounded-xl" />
-                        <Skeleton className="h-3 w-[140px] rounded-xl" />
-                        <Skeleton className="h-3 w-[100px] rounded-xl" />
+    return <>
+        <Card className="mt-5">
+            <CardHeader>
+                <CardTitle>Set Jobs Alert</CardTitle>
+                <CardDescription>Change alert settings for your saved jobs.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-6">
+                {loading && [...Array(4)].map((_, index) =>
+                    <div key={index} className="flex items-center space-x-4">
+                        <div key={index} className="space-y-2">
+                            <Skeleton className="h-4 w-[220px] rounded-xl" />
+                            <Skeleton className="h-3 w-[140px] rounded-xl" />
+                            <Skeleton className="h-3 w-[100px] rounded-xl" />
+                        </div>
+                        <Skeleton className="h-8 w-8 rounded-2xl" />
                     </div>
-                    <Skeleton className="h-8 w-8 rounded-2xl" />
+                )}
+                {!loading && jobs.map((job) => {
+                    return <div key={job.searchId} className="flex items-center justify-between space-x-2">
+                        <Label htmlFor="necessary" className="flex flex-col space-y-1">
+                            <a href={job.href}>{job.text}</a>
+                            <span className="font-normal leading-snug text-muted-foreground">{job.filterCount}</span>
+                            <span className="font-normal leading-snug text-muted-foreground">{job.countInLastHour} jobs in the last hour</span>
+                        </Label>
+                        <span className="cursor-pointer" onClick={onSwitchalert.bind(null, job)}>
+                            {job.alert
+                                ? <BellRing size={24} className="text-green-500" />
+                                : <BellOff size={24} className="text-gray-500" />}
+                        </span>
+                    </div>
+                })}
+                {!loading && jobs.length === 0 &&
+                    <Alert>
+                        <AlertTitle className="text-lg">No saved jobs found</AlertTitle>
+                        <AlertDescription>
+                            <p>{`You don't have any saved jobs. Search for jobs and save them to get alerts.`}</p>
+                            <p><a href="https://support.upwork.com/hc/en-us/articles/211063078-Search-for-Jobs" className="text-green-600 hover:underline">Learn how to search for jobs</a></p>
+                        </AlertDescription>
+                    </Alert>}
+            </CardContent>
+            {jobs.length > 0 && <CardFooter className="flex flex-col">
+                <div className="flex justify-between items-center mt-5 w-full">
+                    <Label htmlFor="checkEvery" className="text-sm text-muted-foreground">Check jobs every</Label>
+                    <Select onValueChange={onIntervalChange} value={jobInterval}>
+                        <SelectTrigger className="w-[150px]">
+                            <SelectValue placeholder="Check jobs every" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup id="checkEvery">
+                                {jobCheckIntervals.map(interval => (
+                                    <SelectItem key={interval.value}
+                                        value={interval.value.toString()}>{interval.label}</SelectItem>
+                                ))}
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
                 </div>
-            )}
-            {!loading && jobs.map((job) => {
-                return <div key={job.searchId} className="flex items-center justify-between space-x-2">
-                    <Label htmlFor="necessary" className="flex flex-col space-y-1">
-                        <a href={job.href}>{job.text}</a>
-                        <span className="font-normal leading-snug text-muted-foreground">{job.filterCount}</span>
-                        <span className="font-normal leading-snug text-muted-foreground">{job.countInLastHour} jobs in the last hour</span>
-                    </Label>
-                    <span className="cursor-pointer" onClick={onSwitchalert.bind(null, job)}>
-                        {job.alert
-                            ? <BellRing size={24} className="text-green-500" />
-                            : <BellOff size={24} className="text-gray-500" />}
-                    </span>
+
+                <Separator className="mt-5" />
+
+                <div>
+                    <Popover>
+                        <PopoverTrigger className="mt-5">
+                            <div className="text-gray-400 flex gap-2 p-2">
+                                <Info className="h-5 w-5" />
+                                <span className="text-sm text-muted-foreground">I don&apos;t get notifications</span>
+                            </div>
+                        </PopoverTrigger>
+                        <PopoverContent>
+                            Keep in mind that you need to visit Upwork daily basis to get notifications, at least once a day. Otherwise the browser may stop sending notifications.
+                        </PopoverContent>
+                    </Popover>
                 </div>
-            })}
-            {!loading && jobs.length === 0 &&
-                <Alert>
-                    <AlertTitle className="text-lg">No saved jobs found</AlertTitle>
-                    <AlertDescription>
-                        <p>{`You don't have any saved jobs. Search for jobs and save them to get alerts.`}</p>
-                        <p><a href="https://support.upwork.com/hc/en-us/articles/211063078-Search-for-Jobs" className="text-green-600 hover:underline">Learn how to search for jobs</a></p>
-                    </AlertDescription>
-                </Alert>}
-        </CardContent>
-        {jobs.length > 0 && <CardFooter className="flex justify-between mt-5">
-            <Label htmlFor="checkEvery" className="text-sm text-muted-foreground">Check jobs every</Label>
-            <Select onValueChange={onIntervalChange} value={jobInterval}>
-                <SelectTrigger className="w-[150px]">
-                    <SelectValue placeholder="Check jobs every" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectGroup id="checkEvery">
-                        {jobCheckIntervals.map(interval => (
-                            <SelectItem key={interval.value}
-                                value={interval.value.toString()}>{interval.label}</SelectItem>
-                        ))}
-                    </SelectGroup>
-                </SelectContent>
-            </Select>
-        </CardFooter>}
-    </Card>
+            </CardFooter>}
+        </Card>
+
+    </>
 }
