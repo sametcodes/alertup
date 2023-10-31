@@ -2,7 +2,7 @@
 const config = {
     plugins: [
         require('autoprefixer'),
-        require('postcss-scope')("#root_extension"),
+        require('./plugins/postcss-scope')("#root_extension"),
     ]
 }
 
