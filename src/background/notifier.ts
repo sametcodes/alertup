@@ -98,13 +98,12 @@ const startChecking = () => {
         clearInterval(intervalId);
     }
     storage.local.get('checkJobsInterval').then(({ checkJobsInterval }) => {
-        console.log({ checkJobsInterval })
         const currentIntervalTime = checkJobsInterval || DEFAULT_INTERVAL_TIME;
         intervalId = setInterval(controlRSSFeed, Number(currentIntervalTime) * 1000)
     })
 }
 storage.local.changeStream.subscribe((changes) => {
-    if (changes?.checkJobsInterval) {
+    if (changes?.checkJobsInterval || changes?.alerts) {
         console.log("Interval time changed.");
         startChecking();
     }

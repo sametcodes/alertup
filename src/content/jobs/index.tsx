@@ -104,8 +104,6 @@ export const SavedJobsList = () => {
         });
 
         const alerts = await getAlerts(topicAlerts)
-
-        storage.local.set({ alerts })
         const seenJobs = await fetchSeenJobs();
         await getJobsInterval()
         const topicsWithCount = getJobsCount(alerts, seenJobs);
